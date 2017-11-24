@@ -99,3 +99,10 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# IntelliJ IDE
+.idea/
+
+#sharp results
+evaluation-results/
+results/
