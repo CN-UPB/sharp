@@ -17,7 +17,7 @@ class TestCase:
                  id='',
                  alt_id='',
                  description='',
-                 handover_count=100,
+                 handover_count=1,  # 100
                  reset_network=True,
                  protocol="udp",
                  pps=None,

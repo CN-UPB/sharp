@@ -118,6 +118,7 @@ def collect_generator_statistics(results_dir, test_case, current_id, current_ste
     os.remove(report_name)
 
     data = json.load(open(results_report_name))
+    print '{} pps, {} actual pps'.format(data['packets_per_second'], data['actual_packets_per_second'])
     print '{} missing, {} reordered'.format(len(data['missing_packets']), len(data['reordered_packets']))
 
 
