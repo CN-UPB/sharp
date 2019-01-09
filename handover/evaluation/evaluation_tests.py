@@ -96,11 +96,18 @@ def do_handover(controller, test_case):
                                  **{test_case.protocol + '_src': 24242})
 
 
-def wait_for_handover_finished(controller):
+def wait_for_handover_finished(controller, timeout=60):
+    t_start = time.time()
     statistics = controller.get_handover_statistics(0)
     while not statistics or not statistics['finished']:
+        if time.time() - t_start > timeout:
+            print "Error: Handover finish timeout reached!"
+            return None
         time.sleep(0.1)
         statistics = controller.get_handover_statistics(0)
+        print ".",
+        sys.stdout.flush()
+    print " done."
     return statistics
 
 
@@ -229,46 +236,54 @@ def run_test(test_case, start_step, start_handover, date):
     for test_step in range(start_step, step_count):
         print "*** STEP {} / {} ***".format(test_step+1, step_count)
         for current_handover in range(start_handover, test_case.handover_count):
-            print "*** HANDOVER {} / {} ***".format(current_handover + 1, test_case.handover_count)
-            start_time = time.time()
-            handover_results_directory = create_handover_results_directory(results_directory,
-                                                                           test_step,
-                                                                           current_handover)
-            handover_id = 100000 + current_handover
-            # restart network for test
-            print "(1/6) Starting Network"
-            ctrl, net = restart_components(docker_client, test_case, cc, net, test_step)
-            # wait until network has settled
-            time.sleep(1)
-            # start generator once to generate the default entries for this flow
-            print "(2/6) Preparing Default Routes"
-            start_generator(test_case, net, test_step, True)
-            time.sleep(0.5)
-            # stop pre generator again
-            stop_generator(net)
-            time.sleep(0.5)
-            # start real generator
-            print "(3/6) Starting Packet Generator"
-            start_generator(test_case, net, test_step, handover_id)
-            time.sleep(0.5)
-            # instruct the handover
-            print "(4/6) Executing Handover"
-            do_handover(cc, test_case)
-            # wait for handover to be finished and then collect stats
-            print "(5/6) Wait For Handover To Finish"
-            ctrl_stats = wait_for_handover_finished(cc)
-            time.sleep(1)
-            # stop generator and collect controller stats
-            print "(6/6) Collecting Data"
-            stop_generator(net)
-            collect_generator_statistics(handover_results_directory, test_case, handover_id, test_step)
-            save_controller_stats(handover_results_directory, ctrl_stats)
+            retry = 0
+            while True: # retry as often as needed
+                print "*** HANDOVER {} / {} ***".format(current_handover + 1, test_case.handover_count)
+                start_time = time.time()
+                handover_results_directory = create_handover_results_directory(results_directory,
+                                                                               test_step,
+                                                                               current_handover)
+                handover_id = 100000 + current_handover
+                # restart network for test
+                print "(1/6) Starting Network"
+                ctrl, net = restart_components(docker_client, test_case, cc, net, test_step)
+                # wait until network has settled
+                time.sleep(1)
+                # start generator once to generate the default entries for this flow
+                print "(2/6) Preparing Default Routes"
+                start_generator(test_case, net, test_step, True)
+                time.sleep(0.5)
+                # stop pre generator again
+                stop_generator(net)
+                time.sleep(0.5)
+                # start real generator
+                print "(3/6) Starting Packet Generator"
+                start_generator(test_case, net, test_step, handover_id)
+                time.sleep(0.5)
+                # instruct the handover
+                print "(4/6) Executing Handover"
+                do_handover(cc, test_case)
+                # wait for handover to be finished and then collect stats
+                print "(5/6) Wait For Handover To Finish"
+                ctrl_stats = wait_for_handover_finished(cc)
+                if ctrl_stats is None:
+                    stop_generator(net)
+                    retry += 1
+                    print("Retry no. {}!".format(retry))
+                    continue  # retry (while True)
+                time.sleep(1)
+                # stop generator and collect controller stats
+                print "(6/6) Collecting Data"
+                stop_generator(net)
+                collect_generator_statistics(handover_results_directory, test_case, handover_id, test_step)
+                save_controller_stats(handover_results_directory, ctrl_stats)
 
-            # time tracking
-            duration = time.time() - start_time
-            all_time += duration
-            count += 1
-            print '{}s left ({}s)'.format((total_count - count) * (all_time / count), duration)
+                # time tracking
+                duration = time.time() - start_time
+                all_time += duration
+                count += 1
+                print '{}s left ({}s)'.format((total_count - count) * (all_time / count), duration)
+                break # stop loop if handover was fine
         start_handover = 0
 
     if ctrl:

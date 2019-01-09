@@ -7,7 +7,7 @@ class TestCase003(TestCase):
                           id='003',
                           alt_id='fixed_pps_increasing_pps_58_bytes',
                           description='Fixed PPS. Increasing State Transfer Duration. 58 Byte Packets',
-                          pps=1000,
+                          pps=3000,
                           packet_size=58,
                           state_duration=[0, 1, 0.1],
                           reports=STD_REPORTS)
