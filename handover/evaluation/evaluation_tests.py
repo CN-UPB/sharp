@@ -275,9 +275,14 @@ def run_test(test_case, start_step, start_handover, date):
                 # stop generator and collect controller stats
                 print "(6/6) Collecting Data"
                 stop_generator(net)
-                collect_generator_statistics(handover_results_directory, test_case, handover_id, test_step)
-                save_controller_stats(handover_results_directory, ctrl_stats)
-
+                try:
+                    collect_generator_statistics(handover_results_directory, test_case, handover_id, test_step)
+                    save_controller_stats(handover_results_directory, ctrl_stats)
+                except BaseException as ex:
+                    print("Error during result collection: {}".format(ex))
+                    retry += 1
+                    print("Retry no. {}!".format(retry))
+                    continue  # retry (while True)
                 # time tracking
                 duration = time.time() - start_time
                 all_time += duration
