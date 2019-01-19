@@ -23,6 +23,7 @@ from handover.evaluation.evaluation_conf import *
 
 
 REPORT_FILENAME = '24242.report'
+WAIT_TIME = 3.0  # time for baseline run
 
 
 def setup_network(test_case, test_step):
@@ -262,16 +263,24 @@ def run_test(test_case, start_step, start_handover, date):
                 time.sleep(0.5)
                 # instruct the handover
                 print "(4/6) Executing Handover"
-                do_handover(cc, test_case)
+                if test_case.skip_handover:
+                    print("skip_handover = True")
+                else:
+                    do_handover(cc, test_case)
                 # wait for handover to be finished and then collect stats
-                print "(5/6) Wait For Handover To Finish"
-                ctrl_stats = wait_for_handover_finished(cc)
-                if ctrl_stats is None:
-                    stop_generator(net)
-                    retry += 1
-                    print("Retry no. {}!".format(retry))
-                    continue  # retry (while True)
-                time.sleep(1)
+                print "(5/6) Wait For Handover"
+                if test_case.skip_handover:
+                    print "skip_handover = True (wait for {}s)".format(WAIT_TIME)
+                    time.sleep(WAIT_TIME)
+                    ctrl_stats = dict()
+                else:
+                    ctrl_stats = wait_for_handover_finished(cc)
+                    if ctrl_stats is None:
+                        stop_generator(net)
+                        retry += 1
+                        print("Retry no. {}!".format(retry))
+                        continue  # retry (while True)
+                    time.sleep(1)
                 # stop generator and collect controller stats
                 print "(6/6) Collecting Data"
                 stop_generator(net)

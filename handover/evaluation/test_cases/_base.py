@@ -23,7 +23,8 @@ class TestCase:
                  pps=None,
                  packet_size=None,
                  state_duration=None,
-                 reports=None):
+                 reports=None,
+                 skip_handover=False):
         self.id = id
         self.alt_id = alt_id
         self.description = description
@@ -34,6 +35,7 @@ class TestCase:
         self.packet_size = packet_size
         self.state_duration = state_duration
         self.reports = reports
+        self.skip_handover = skip_handover
 
     def get_step_count(self):
         if type(self.pps) is list:
